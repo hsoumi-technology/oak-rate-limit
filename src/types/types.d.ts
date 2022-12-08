@@ -1,12 +1,12 @@
 import { Context } from "../../deps.ts";
 import { Store } from "../stores/AbstractStore.ts";
 
-export interface Ratelimit {
+export interface RateLimit {
   remaining: number;
   lastRequestTimestamp: number;
 }
 
-export interface RatelimitOptions {
+export interface RateLimitOptions {
   windowMs: number;
   max: number;
   store: Store;
@@ -17,6 +17,6 @@ export interface RatelimitOptions {
   onRateLimit: (
     ctx: Context,
     next: () => Promise<unknown>,
-    opt: RatelimitOptions,
+    opt: RateLimitOptions,
   ) => unknown;
 }

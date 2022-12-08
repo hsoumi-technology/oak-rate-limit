@@ -1,56 +1,74 @@
 import { Context, Middleware } from "../deps.ts";
-import type { RatelimitOptions } from "./types/types.d.ts";
+import type { RateLimitOptions } from "./types/types.d.ts";
 import { DefaultOptions } from "./utils/defaults.ts";
 
 export const RateLimiter = async (
-  options?: Partial<RatelimitOptions>,
+  options?: Partial<RateLimitOptions>,
 ): Promise<Middleware> => {
-  const opt = { ...DefaultOptions, ...options };
+  const opt: RateLimitOptions = { ...DefaultOptions, ...options };
 
   await opt.store.init();
 
   if (typeof opt.onRateLimit !== "function") {
     throw "onRateLimit must be a function.";
   }
-  if (typeof opt.skip !== "function") throw "skip must be a function.";
+
+  if (typeof opt.skip !== "function") {
+    throw "skip must be a function.";
+  }
 
   return async (ctx: Context, next) => {
     const { ip } = ctx.request;
     const timestamp = Date.now();
 
+    // if skip return true, we don't check rate limit
     if (await opt.skip(ctx)) return next();
+
     if (opt.headers) {
       ctx.response.headers.set("X-RateLimit-Limit", opt.max.toString());
     }
 
+    const store = opt.store;
+    const exists = async () => await store.has(ip);
+    const get = async () => await store.get(ip);
+
+    // we check if the current ip exists
+    // and its last request is older than the window allowed
+    // so we delete it.
+    // ! This is not very good for bigger scale,
+    // ! we should add something like timeout
+    // ! that will remove the entry after the given window
+    // ? create a setTimeout(fn,windowMs) that will clean the entry
     if (
-      await opt.store.has(ip) &&
-      timestamp - (await opt.store.get(ip)!).lastRequestTimestamp >
+      await exists() &&
+      timestamp - (await get())!.lastRequestTimestamp >
         opt.windowMs
     ) {
-      opt.store.delete(ip);
+      await store.delete(ip);
     }
-    if (!opt.store.has(ip)) {
-      opt.store.set(ip, {
+
+    if (!await exists()) {
+      await store.set(ip, {
         remaining: opt.max,
         lastRequestTimestamp: timestamp,
       });
     }
 
-    if (await opt.store.has(ip) && (await opt.store.get(ip)!).remaining === 0) {
+    if (await exists() && (await get())!.remaining === 0) {
       await opt.onRateLimit(ctx, next, opt);
     } else {
       await next();
       if (opt.headers) {
         ctx.response.headers.set(
           "X-RateLimit-Remaining",
-          opt.store.get(ip)
-            ? (await opt.store.get(ip)!).remaining.toString()
+          store.get(ip)
+            ? (await get())!.remaining.toString()
             : opt.max.toString(),
         );
       }
-      opt.store.set(ip, {
-        remaining: (await opt.store.get(ip)!).remaining - 1,
+
+      store.set(ip, {
+        remaining: (await get())!.remaining - 1,
         lastRequestTimestamp: timestamp,
       });
     }
@@ -60,7 +78,7 @@ export const RateLimiter = async (
 export const onRateLimit = async (
   ctx: Context,
   _next: () => Promise<unknown>,
-  opt: RatelimitOptions,
+  opt: RateLimitOptions,
 ): Promise<unknown> => {
   await opt.store.set(ctx.request.ip, {
     remaining: 0,

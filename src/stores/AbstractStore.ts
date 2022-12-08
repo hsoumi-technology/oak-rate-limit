@@ -1,18 +1,18 @@
-import type { Ratelimit } from "../types/types.d.ts";
+import type { RateLimit } from "../types/types.d.ts";
 
 export abstract class Store {
   public init(): Promise<void> | void {
     throw "Not implemented";
   }
 
-  public get(_ip: string): Promise<Ratelimit> | Ratelimit | undefined {
+  public get(_ip: string): Promise<RateLimit> | RateLimit | undefined {
     throw "Not implemented";
   }
 
   public set(
     _ip: string,
-    _ratelimit: Ratelimit,
-  ): Promise<Ratelimit> | Map<string, Ratelimit> {
+    _RateLimit: RateLimit,
+  ): Promise<RateLimit> | Map<string, RateLimit> {
     throw "Not implemented";
   }
 

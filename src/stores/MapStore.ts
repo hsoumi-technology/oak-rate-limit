@@ -1,12 +1,12 @@
-import type { Ratelimit } from "../types/types.d.ts";
+import type { RateLimit } from "../types/types.d.ts";
 import { Store } from "./AbstractStore.ts";
 
 export class MapStore extends Store {
-  private readonly store: Map<string, Ratelimit>;
+  private readonly store: Map<string, RateLimit>;
 
   constructor() {
     super();
-    this.store = new Map<string, Ratelimit>();
+    this.store = new Map<string, RateLimit>();
   }
 
   public init() {
@@ -17,8 +17,8 @@ export class MapStore extends Store {
     return this.store.get(ip);
   }
 
-  public set(ip: string, ratelimit: Ratelimit) {
-    return this.store.set(ip, ratelimit);
+  public set(ip: string, RateLimit: RateLimit) {
+    return this.store.set(ip, RateLimit);
   }
 
   public delete(ip: string) {

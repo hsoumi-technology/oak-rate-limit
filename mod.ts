@@ -1,2 +1,2 @@
 export { RateLimiter } from "./src/ratelimit.ts";
-export { MapStore, Store } from "./src/stores/mod.ts";
+export { MapStore, RedisStore, Store } from "./src/stores/mod.ts";

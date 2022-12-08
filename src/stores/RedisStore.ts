@@ -3,7 +3,7 @@ import {
   Redis,
   RedisConnectOptions,
 } from "https://deno.land/x/redis@v0.26.0/mod.ts";
-import type { Ratelimit } from "../types/types.d.ts";
+import type { RateLimit } from "../types/types.d.ts";
 import { Store } from "./AbstractStore.ts";
 
 export class RedisStore extends Store {
@@ -38,26 +38,26 @@ export class RedisStore extends Store {
     return JSON.parse(data);
   }
 
-  public async set(ip: string, ratelimit: Ratelimit) {
+  public async set(ip: string, RateLimit: RateLimit) {
     if (!this.isConnected) throw "[oak-rate-limit] RedisStore is not connected";
 
-    const newRatelimit = await this.store!
-      .set(ip, JSON.stringify(ratelimit));
-    return JSON.parse(newRatelimit);
+    await this.store!
+      .set(ip, JSON.stringify(RateLimit));
+
+    return RateLimit;
   }
 
-  public async delete(ip: string) {
+  public delete(ip: string) {
     if (!this.isConnected) throw "[oak-rate-limit] RedisStore is not connected";
 
-    const value = Boolean((await this.store!).del(ip));
+    const value = Boolean((this.store!).del(ip));
     return value;
   }
 
   public async has(ip: string) {
     if (!this.isConnected) throw "[oak-rate-limit] RedisStore is not connected";
 
-    const value = Boolean((await this.store!).exists(ip));
-    return value;
+    return await this.store?.exists(ip)! > 0;
   }
 
   private get isConnected() {
