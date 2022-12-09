@@ -17,7 +17,7 @@ export const RateLimiter = async (
     throw "skip must be a function.";
   }
 
-  return async (ctx: Context, next) => {
+  return async (ctx: Context, next: () => Promise<unknown>) => {
     const { ip } = ctx.request;
     const timestamp = Date.now();
 
@@ -39,13 +39,14 @@ export const RateLimiter = async (
     // ! we should add something like timeout
     // ! that will remove the entry after the given window
     // ? create a setTimeout(fn,windowMs) that will clean the entry
-    if (
-      await exists() &&
-      timestamp - (await get())!.lastRequestTimestamp >
-        opt.windowMs
-    ) {
-      await store.delete(ip);
-    }
+    // * needs further testing
+    // if (
+    //   await exists() &&
+    //   timestamp - (await get())!.lastRequestTimestamp >
+    //     opt.windowMs
+    // ) {
+    //   await store.delete(ip);
+    // }
 
     if (!await exists()) {
       await store.set(ip, {
@@ -54,10 +55,13 @@ export const RateLimiter = async (
       });
     }
 
-    if (await exists() && (await get())!.remaining === 0) {
+    if (
+      await exists() &&
+      Date.now() - (await get())!.lastRequestTimestamp < opt.windowMs &&
+      (await get())!.remaining === 0
+    ) {
       await opt.onRateLimit(ctx, next, opt);
     } else {
-      await next();
       if (opt.headers) {
         ctx.response.headers.set(
           "X-RateLimit-Remaining",
@@ -71,6 +75,19 @@ export const RateLimiter = async (
         remaining: (await get())!.remaining - 1,
         lastRequestTimestamp: timestamp,
       });
+
+      await next();
+
+      setTimeout(async () => {
+        const exist = await exists();
+
+        if (
+          exist &&
+          Date.now() - (await get())!.lastRequestTimestamp > opt.windowMs
+        ) {
+          await store.delete(ip);
+        }
+      }, opt.windowMs);
     }
   };
 };
