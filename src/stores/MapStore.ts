@@ -17,7 +17,7 @@ export class MapStore extends Store {
     return this.store.get(ip);
   }
 
-  public set(ip: string, RateLimit: RateLimit) {
+  public set(ip: string, _windowMs: number, RateLimit: RateLimit) {
     return this.store.set(ip, RateLimit);
   }
 

@@ -32,24 +32,8 @@ export const RateLimiter = async (
     const exists = async () => await store.has(ip);
     const get = async () => await store.get(ip);
 
-    // we check if the current ip exists
-    // and its last request is older than the window allowed
-    // so we delete it.
-    // ! This is not very good for bigger scale,
-    // ! we should add something like timeout
-    // ! that will remove the entry after the given window
-    // ? create a setTimeout(fn,windowMs) that will clean the entry
-    // * needs further testing
-    // if (
-    //   await exists() &&
-    //   timestamp - (await get())!.lastRequestTimestamp >
-    //     opt.windowMs
-    // ) {
-    //   await store.delete(ip);
-    // }
-
     if (!await exists()) {
-      await store.set(ip, {
+      await store.set(ip, opt.windowMs, {
         remaining: opt.max,
         lastRequestTimestamp: timestamp,
       });
@@ -71,23 +55,23 @@ export const RateLimiter = async (
         );
       }
 
-      store.set(ip, {
+      store.set(ip, opt.windowMs, {
         remaining: (await get())!.remaining - 1,
         lastRequestTimestamp: timestamp,
       });
 
       await next();
 
-      setTimeout(async () => {
-        const exist = await exists();
+      // setTimeout(async () => {
+      //   const exist = await exists();
 
-        if (
-          exist &&
-          Date.now() - (await get())!.lastRequestTimestamp > opt.windowMs
-        ) {
-          await store.delete(ip);
-        }
-      }, opt.windowMs);
+      //   if (
+      //     exist &&
+      //     Date.now() - (await get())!.lastRequestTimestamp > opt.windowMs
+      //   ) {
+      //     await store.delete(ip);
+      //   }
+      // }, opt.windowMs);
     }
   };
 };
@@ -97,7 +81,7 @@ export const onRateLimit = async (
   _next: () => Promise<unknown>,
   opt: RateLimitOptions,
 ): Promise<unknown> => {
-  await opt.store.set(ctx.request.ip, {
+  await opt.store.set(ctx.request.ip, opt.windowMs, {
     remaining: 0,
     lastRequestTimestamp: Date.now(),
   });

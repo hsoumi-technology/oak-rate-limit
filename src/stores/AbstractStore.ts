@@ -11,6 +11,7 @@ export abstract class Store {
 
   public set(
     _ip: string,
+    _windowMs: number,
     _RateLimit: RateLimit,
   ): Promise<RateLimit> | Map<string, RateLimit> {
     throw "Not implemented";

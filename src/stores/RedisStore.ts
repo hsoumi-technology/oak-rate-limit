@@ -38,8 +38,12 @@ export class RedisStore extends Store {
     return JSON.parse(data);
   }
 
-  public async set(ip: string, RateLimit: RateLimit) {
+  public async set(ip: string, windowMs: number, RateLimit: RateLimit) {
     if (!this.isConnected) throw "[oak-rate-limit] RedisStore is not connected";
+
+    if (await this.store?.exists(ip) == 0) {
+      this.store?.expire(ip, windowMs);
+    }
 
     await this.store!
       .set(ip, JSON.stringify(RateLimit));
